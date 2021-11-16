@@ -3,14 +3,14 @@
 #include <string.h>
 #include <math.h>
 
-//PROGETTO API 2020
+//API Project 2020
 //Lorenzo Campana
 //lorecampa99@gmail.com
-//2° anno ingegneria informatica al Politecnico di Milano
-//Progetto relativo al corso di Algoritmi e strutture dati
+//2° year of Engineering of Computing Systems at Politecnico di Milano
+//Project of the Algorithms and Pinciples of Computer Science module
 
 /*
-Valutazione progetto: 30L
+Final grade: 30L
 WriteOnly: 5/5
 BulkReads: 5/5
 TimeForAChange: 5/5
@@ -21,18 +21,20 @@ Lode: 1/1
  */
 
 
-//lunghezza buffer riga
+//length buffer row
 #define MAX_SIZE 1024
-//grandezza vettore text editor iniziale
+//length initial vector text editor
 #define START_SIZE 150
-//coefficente di riallocazione
+//coefficient of reallocation
 #define COEFF_REALLOC 2
 
-//Idea di base: usere array dinamici e non fare mai la free delle stringhe del vettore dinamico
-//in quanto in qualche modo verrano riutilizzate
 
 
-//struct comandi
+
+//Idea: use of dynamic arrays, without freeing the strings
+// due to the fact that they will be reused somehow.
+
+//struct commands
 typedef struct command{
     int ind1;
     int ind2;
@@ -46,7 +48,7 @@ typedef struct array{
     int size;
 }Array;
 
-//lista per implementare la undo e la redo come stack
+//undo and redo list node
 typedef struct stacknode{
     char** array;
     int used;
@@ -57,33 +59,34 @@ typedef struct stacknode{
 }stackNode;
 
 
-//variabili globali della stack Undo e Redo e le rispettive grandezze
+//global variables for Undo and Redo and their sizes.
 int undoStackSize, redoStackSize;
 stackNode* undoStack, *redoStack;
 
 
-//funzioni gestione array
+//manage array functions
 void initArray(Array* arr);
 void reallocArray(Array* arr);
 
 
-//funzioni gestione stack
+
+//manage stack
 stackNode* popStack(stackNode** root);
 void pushStack(stackNode** root, stackNode* node);
 
 
 
-//funzione gestione comandi
+//manage commands
 int commandUtil(Array* arr, Command* command);
 
-//funzioni dei comandi
+//commands
 void changeCommand(Array* arr, Command* command);
 void printCommand(Array* arr, Command* command);
 void deleteCommand(Array* arr, Command* command);
 void undoCommand(Array* arr, Command* command);
 void redoCommand(Array* arr, Command* command);
 
-//funzione per presa del comando da stdin
+//retrieve command from stdin
 Command getCommand();
 
 
@@ -93,13 +96,13 @@ int main(){
     Array arrayTextEditor;
     initArray(&arrayTextEditor);
 
-    //inizializazzione stack undo e redo
+    //initialization stacks undo e redo
     undoStack = NULL;
     undoStackSize = 0;
     redoStack = NULL;
     redoStackSize = 0;
 
-    //ciclo while che termina nel caso di 'q' (return 0)
+    //loop terminate if 'q' command appears (return 0)
     Command currCommand = getCommand();
     while (commandUtil(&arrayTextEditor, &currCommand)){
         currCommand = getCommand();
@@ -110,51 +113,52 @@ int main(){
 
 
 void initArray(Array* arr){
-    //allocazione array parziale char* del numero di elementi
-    //poi ogni elemento dell'array verrà riservato in futuro un numero di byte
-    //proporzionale al numero di caratteri della stringa da inserire
-    //troppo oneroso salvare subito 1024 carattare per cella
+
+    //initial allocation of the dynamic array (look at START SIZE)
+    //then for each string will be allocated a proportional number of byte based of their length
+    //way to expensive saving string with 1024 character for each cell
     arr->array = (char**) malloc(START_SIZE*sizeof(char*));
     arr->used = 0;
     arr->size = START_SIZE;
 }
+
 void reallocArray(Array* arr){
     while (arr->used >= arr->size){
         arr->size *= COEFF_REALLOC;
     }
     arr->array = realloc(arr->array, sizeof(char*) * (arr->size));
 }
+
 Command getCommand(){
+    //command parsing, could have been developed in many ways
     Command command;
     char stringTemp[MAX_SIZE];
     int length, nDigits;
     fgets(stringTemp, MAX_SIZE, stdin);
 
-    //-1 perchè bisogna considerare il \n
+    //-1 for the \n
     length = strlen (stringTemp) - 1;
-    //questa cosa vale sempre
+
     command.letter = stringTemp[length-1];
 
-    //Caso 'q'
+    //Case 'q'
     if (command.letter == 'q'){
         command.ind1 = -1;
         command.ind2 = -1;
         return command;
     }
 
-    //primo indirizzo sempre calcolabile così
+    //first address
     command.ind1 = atoi(stringTemp);
 
-    //calcolo numero di cifre dell'indirizzo 1
+
     nDigits = floor(log10(abs(command.ind1))) + 1;
 
-    //Caso 'ind1X'
     if (length == nDigits+1) {
         command.ind2 = -1;
         return command;
 
     }else{
-        //Caso 'ind1,ind2X'
         char s1[2] = ",";
         char s2[1];
         s2[0] = command.letter;
@@ -174,38 +178,37 @@ void changeCommand(Array* arr, Command* command) {
     int oldSize = arr->size;
 
 
-    //faccio la free della redo stack dopo una change
+    //free the redo stack after a change
     if (redoStack != NULL){
-        //non sto a liberare la memoria mi occuperebbe troppo tempo
+        //don't free the memory as it would take too long
         redoStack = NULL;
         redoStackSize = 0;
 
     }
 
 
-    //allocazione nodo per undoStack (caso change)
+    //allocation node for Undo stack
     stackNode* newNode = malloc(sizeof(stackNode));
 
-    //gestione dei due diversi casi
+    //managing two different cases
     if (ind1 > oldUsed){
-        //caso in cui si aggiungono nuove righe all'editor di testo
+        //adding new lines to the text editor
         newNode->used = 0;
         newNode->size = ind2 - ind1 + 1;
         newNode->riga1 = ind1;
         newNode->riga2 = ind2;
-        //faccio il salvataggio di stringhe a NULL in quanto non sono presenti
-        //per tornare indietro(fare l'undo) non devo fare altro che mettere
-        //da riga1 a riga2 del vettore a NULL
+
+        //undo consists on setting NULL in specific addresses
         newNode->array = calloc(newNode->size, sizeof(char*));
 
     }else{
-        //caso in cui si cambiano righe già scritte
+        //overriding strings
         newNode->riga1 = -1;
         newNode->riga2 = -1;
         newNode->used = oldUsed;
         newNode->size = oldSize;
-        //faccio il backup del dello stato del vettore allocando solo il il vettore e copiando i
-        //puntatori delle stringhe
+
+        //vector backup just by coping the pointer of the old strings (without freeing them)
         char** oldArray = malloc(sizeof(char*) * oldSize);
         for (int i = 0; i < oldUsed; i++){
             oldArray[i] = arr->array[i];
@@ -213,36 +216,36 @@ void changeCommand(Array* arr, Command* command) {
         newNode->array = oldArray;
     }
 
-    //inserimento newNode nell'undoStack
+    //node insertion in undoStack
     pushStack(&undoStack, newNode);
     undoStackSize += 1;
 
 
-    //procedo con l'eseguimento della change e modifica dell'array attuale
+    //computation of change
     int j = 0;
     char stringTemp[MAX_SIZE];
 
 
     for (int i = ind1- 1; i < ind2; i++){
-        //rialloco in caso di vettore dinamico esaurito
+        //control if reallocation is needed
         if (arr->used >= arr->size){
             reallocArray(arr);
         }
-        //presa riga
+
         fgets(stringTemp, MAX_SIZE, stdin);
 
-        //aumento arr->used nel caso di inserimento di nuove righe nell'editor
+        //increment arr->used if new strings are added
         if (i >= oldUsed){
             arr->used += 1;
         }
-        //alloco una nuova stringa senza fare la free di quella precedente
-        //in quanto serve ancora nei backup precedenti (ho passato solo il puntatore)
+
+        //alloc a new string without freeing the previous (undo and redo stacks nodes point to them)
         arr->array[i] = malloc (strlen(stringTemp) + 1);
         strcpy(arr->array[i], stringTemp);
 
         j += 1;
     }
-    //lettura del punto finale '.' prima di uscire dalla funzione
+    //reading the last '.' at the end of the command
     fgets(stringTemp, MAX_SIZE, stdin);
 
 }
@@ -250,7 +253,7 @@ void changeCommand(Array* arr, Command* command) {
 void printCommand(Array* arr, Command* command){
     int ind1 = command->ind1, ind2 = command->ind2, used = arr->used;
 
-    //gestione casi particolari come 0,Xp o 0,0p
+    //managing edge cases such as 0, Xp or 0,0p
     if (ind1 == 0){
         printf(".\n");
         if (ind2 == 0) return;
@@ -276,72 +279,73 @@ void deleteCommand(Array* arr, Command* command) {
     int oldSize = arr->size;
 
 
-    //faccio la free della redo stack nel caso di delete
+    //free the redo stack in case of delete
     if (redoStack != NULL){
-        //non faccio la free di stackNode in quanto occupa poca memoria e mi costerebbe solo tempo
+        //do not free the node due to the fact that occupy a little portion of memory and it would require
+        //a lot of time
         redoStack = NULL;
         redoStackSize = 0;
     }
 
-    //creazione nodo backup da inserire in undoStack
+    //creation node for UndoStack
     stackNode* newNode = malloc(sizeof(stackNode));
     newNode->riga1 = -1;
     newNode->riga2 = -1;
     newNode->used = oldUsed;
     newNode->size = oldSize;
 
-    //backup array vecchio
+    //backup old array
     char** oldArray = malloc(sizeof(char*) * oldSize);
     for (int i = 0; i < oldUsed; i++){
-        //passo solo il puntatore senza fare la copia della stringa
-        //troppo oneroso in termini di tempo fare la copia della stringa
-        //bisogna stare poi attenti a non fare la free delle stringhe vecchie
+        //backup of pointers
         oldArray[i] = arr->array[i];
     }
+
     newNode->array = oldArray;
-    //inserimento nodo backup nell'undoStack
+
+    //UndoStack node insertion
     pushStack(&undoStack, newNode);
     undoStackSize += 1;
 
 
 
-    //gestione casi particolari
-    //gestione casi con indirizzo non presente
+    //Edge cases
+
+    //address not present
     if (ind1 > oldUsed){
         return;
     }
     if (ind1 == 0){
         if (ind2 == 0){
-            //caso per gestire 0,0d
+            //0,0d
             return;
         }else{
-            //caso per gestire 0,Xd
+            //0,Xd
             ind1 = 1;
 
         }
     }
-    //secondo indirizzo non presente nel text editor
+
+    //second address not present
     if (ind2 > oldUsed){
         ind2 = arr->used;
     }
 
     int gap = ind2 - ind1 + 1;
 
+    //normal case
     for (int i = ind1 - 1; i < oldUsed; i++){
-        //caso in cui si può fare la traslazione
-        //inverto semplicemente i puntatori
+        //translations without freeing strings
         if (i + gap < oldUsed){
             stringTemp = arr->array[i];
             arr->array[i] = arr->array[i+gap];
             arr->array[i+gap] = stringTemp;
 
         }else{
-            //caso in cui bisogna iniziare a fare la free del vettore
-            //mettendo il puntatore a NULL per sapere quindi se è inizializzato o no
             arr->array[i] = NULL;
         }
     }
-    //aggiorno used del vettore dinamico
+    //updates used attribute
     arr->used = oldUsed - gap;
 
 }
@@ -352,7 +356,6 @@ int commandUtil(Array* arr, Command* command){
     int result, value, oldUndoSize, oldRedoSize;
     Command newCommand;
 
-    //switch per gestione vari comandi
     switch (letter) {
         case 'c':
             changeCommand(arr, command);
@@ -367,10 +370,8 @@ int commandUtil(Array* arr, Command* command){
             return 1;
 
         case 'u':
-            //accorpamento istruzioni posto Undo
-            //idea: controllo di volta in volta se si possono eseguire quelle operazioni di undo/redo
-            //andando a modificare il valore della grandezza della undoStack e redoStack
-            //i comandi leciti poi verranno sommati (caso undo) o sottratti (caso redo) a result e poi eseguiti
+            //Merging sequential Undo and Redo commands
+
             oldUndoSize = undoStackSize;
             oldRedoSize = redoStackSize;
             result = command->ind1;
@@ -378,7 +379,7 @@ int commandUtil(Array* arr, Command* command){
             if (result > oldUndoSize){
                 result = oldUndoSize;
             }
-            //aggiornamento size
+            //update size
             oldUndoSize -= result;
             oldRedoSize += result;
 
@@ -391,7 +392,7 @@ int commandUtil(Array* arr, Command* command){
                         value = oldUndoSize;
                     }
                     result += value;
-                    //aggiornamento size
+                    //update size
                     oldUndoSize -= value;
                     oldRedoSize += value;
 
@@ -400,14 +401,14 @@ int commandUtil(Array* arr, Command* command){
                         value = oldRedoSize;
                     }
                     result -= value;
-                    //aggiornamento size
+                    //update size
                     oldUndoSize += value;
                     oldRedoSize -= value;
                 }
                 newCommand = getCommand();
             }
 
-            //eseguimento undo/redo in base al valore di result
+            //execute undo/redo based on result value
             if (result >= 0){
                 command->ind1 = result;
                 undoCommand(arr, command);
@@ -417,12 +418,11 @@ int commandUtil(Array* arr, Command* command){
                 redoCommand(arr, command);
             }
 
-            //mini ricorsione per gestire l'ultimo comando che ci ha fatto
-            //uscire dal ciclo while
+            //little recursion
             return commandUtil(arr, &newCommand);
 
         case 'r':
-            //gestione accorpamento delle redo una dietro l'altra
+            //Merging sequential redo commands
             result = command->ind1;
             newCommand = getCommand();
             while (newCommand.letter == 'r'){
@@ -463,16 +463,16 @@ void undoCommand(Array* arr, Command* command){
     int tempUsed, tempSize, riga1, riga2, arrUsed, h;
     char** tempArray;
 
-    //ciclo while che termina solo nel caso di stack vuota o undo terminati
+
     int j = 0;
     while (undoStack != NULL && j < ind1){
-        //presa del nodo dalla undo stack
+        //pop of node from undo stack
         temp = popStack(&undoStack);
         undoStackSize -= 1;
 
-        //caso in cui si è fatto la pop di un backup
+        //pop of a snapshot
         if (temp->riga1 == -1){
-            //semplice switch dei puntatori con appoggio
+            //simple switch of pointers
             tempArray= temp->array;
             tempUsed = temp->used;
             tempSize = temp->size;
@@ -486,7 +486,7 @@ void undoCommand(Array* arr, Command* command){
             arr->used = tempUsed;
             arr->size = tempSize;
         }
-        //caso in cui si è fatto la pop di una change che aveva aumentato il vettore
+        //pop of a change that incremented a vector
         else{
 
             riga1 = temp->riga1;
@@ -498,25 +498,25 @@ void undoCommand(Array* arr, Command* command){
             for (int i = riga1-1; i < riga2; i++){
                 if (i < arrUsed){
                     if (h < tempUsed){
-                        //caso switch dei puntatori
+                        //switch of pointers
                         tempPunt = arr->array[i];
                         arr->array[i] = temp->array[h];
                         temp->array[h] = tempPunt;
 
                     }else{
-                        //caso switch con temp[i] NULL
+                        //switch with temp[i] NULL
                         temp->array[h] = arr->array[i];
                         arr->array[i] = NULL;
-                        //aggiornamento grandezze vettori
+                        //update values
                         temp->used += 1;
                         arr->used -= 1;
                     }
                 }else{
                     if (h < tempUsed){
-                        //caso switch con arr[i] NULL
+                        //switch with arr[i] NULL
                         arr->array[i] = temp->array[h];
                         temp->array[h] = NULL;
-                        //aggiornamento grandezze vettori
+                        //update values
                         temp->used -= 1;
                         arr->used += 1;
                     }
@@ -526,7 +526,7 @@ void undoCommand(Array* arr, Command* command){
             }
         }
 
-        //inserimento nuovo temp modifica nella redoStack
+        //insert new node in the redo stack
         pushStack(&redoStack, temp);
         redoStackSize += 1;
 
@@ -543,17 +543,16 @@ void redoCommand(Array* arr, Command* command){
     char** tempArray;
 
 
-    //ciclo che termina in caso di pila vuota o redo terminati
     int j = 0;
     while (redoStack != NULL && j < ind1){
 
-        //presa nodo dalla redoStack
+        //pop the node from the redo stack
         temp = popStack(&redoStack);
         redoStackSize -= 1;
 
-        //caso in cui bisogna ripristinare un backup
+        //snapshot case
         if (temp->riga1 == -1){
-            //semplice switch di puntatori con appoggio
+            //switch of pointers
             tempArray= temp->array;
             tempUsed = temp->used;
             tempSize = temp->size;
@@ -567,7 +566,7 @@ void redoCommand(Array* arr, Command* command){
             arr->used = tempUsed;
             arr->size = tempSize;
         }
-        //caso in cui bisogna ripristinare una change con incremento vettore
+
         else{
             riga1 = temp->riga1;
             riga2 = temp->riga2;
@@ -579,25 +578,22 @@ void redoCommand(Array* arr, Command* command){
 
                 if (i < arrUsed){
                     if (h < tempUsed){
-                        //caso switch puntatori non nulli
                         tempPunt = arr->array[i];
                         arr->array[i] = temp->array[h];
                         temp->array[h] = tempPunt;
 
                     }else{
-                        //caso switch con temp[i] NULL
                         temp->array[h] = arr->array[i];
                         arr->array[i] = NULL;
-                        //aggiornamento grandezza vettore
+
                         temp->used += 1;
                         arr->used -= 1;
                     }
                 }else{
                     if (h < tempUsed){
-                        //caso switch con arr[i] NULL
                         arr->array[i] = temp->array[h];
                         temp->array[h] = NULL;
-                        //aggiornamento grandezza vettore
+
                         temp->used -= 1;
                         arr->used += 1;
                     }
@@ -607,7 +603,7 @@ void redoCommand(Array* arr, Command* command){
             }
         }
 
-        //inserimento nuovo temp modificato nello stack Undo
+        //insertion of a node in the undo stack
         pushStack(&undoStack, temp);
         undoStackSize += 1;
 
