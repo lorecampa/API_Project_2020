@@ -3,7 +3,7 @@
 
 Project for the Algorithms and Principles of Computer Science course.
 
-The project consist in a simple **text editor** implementation with specific commands.
+The project consist in a simple **text editor** implementation with specific commands, for more see the [specifications](https://github.com/lorecampa/ProjectTextEditor/blob/main/deliverables/specifications.pdf).
 
 >Final Grade: 30L
 
