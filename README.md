@@ -71,8 +71,6 @@ third row
 
 
 ## Tests
-
-```
 | Name      | Result |
 | ----------- | ----------- |
 | WriteOnly | 5/5 |
@@ -83,4 +81,3 @@ third row
 | Rollercoaster | 5/5 |
 | Lode | 1/1 |
 
-```
